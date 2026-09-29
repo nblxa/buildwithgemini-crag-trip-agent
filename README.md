@@ -13,6 +13,7 @@ Based on the codebase in `app/` and the tools wired to `root_agent`:
 ### 1. Crag & Topo Database (Google Cloud Firestore)
 - **Crag Discovery & Filtering (`list_crags`)**: Streams climbing crags from the `crags` Firestore collection with optional filters by climbing discipline (sport climbing, trad climbing, bouldering) and country.
 - **Topos, Accommodations & Details (`get_crag_details`)**: Retrieves comprehensive crag records including sectors, route lists with difficulties (French and Yosemite decimal grades), topos, approaches, and nearby campsites/huts/apartments.
+- **Interactive Clickable Descriptions**: All crag and accommodation names/descriptions are linked with direct Google Maps search URLs, allowing climbers to tap any crag, campground, gîte, or alpine refuge directly from chat bubbles and A2UI cards.
 - **Crag Contribution (`add_or_update_crag`)**: Allows climbers to add or update crag records in Firestore.
 - **Vehicle Profiles (`save_user_vehicle_profile`, `get_user_vehicle_profile`)**: Persists the user's vehicle fuel consumption (L/100km), climber passenger capacity, and gear storage notes in the `user_profiles` Firestore collection.
 
@@ -30,6 +31,7 @@ Based on the codebase in `app/` and the tools wired to `root_agent`:
 
 ### 4. Shareable Trip Itinerary PDF Publishing (Google Cloud Storage)
 - **Trip Asset Compiler (`compile_trip_itinerary_asset`)**: Builds publication-ready climbing trip brochures featuring destination maps, sector photos, classic routes, weather forecasts, toll logistics, and gear checklists.
+- **Default Clickable PDF Link**: Automatically invoked during trip planning conversations, rendering a direct, styled download badge (`[Download Trip Brochure (PDF)](https://storage.googleapis.com/...)`) directly in the agent's output.
 - **Cloud Storage Upload**: Uploads the generated PDF asset to a Google Cloud Storage media bucket (`gs://cragtrip-media-xxl67u`) and returns a public HTTPS link (`https://storage.googleapis.com/...`). Supports English, German, and Russian language outputs.
 
 ### 5. Scenic Visual Generation (Gemini 3.1 Flash Lite Image)
@@ -43,8 +45,9 @@ Based on the codebase in `app/` and the tools wired to `root_agent`:
 ### 7. Sandboxed Python Code Execution (Agent Engine Sandbox)
 - **Sandbox Executor (`AgentEngineSandboxCodeExecutor`)**: Securely executes Python in an isolated Agent Engine sandbox environment to perform route difficulty calculations, pack weight optimizations, and custom calculations.
 
-### 8. Rich Display Cards (A2UI v0.8)
-- Emits structured A2UI v0.8 JSON components (`Card`, `Column`, `Row`, `Text`, `Image`, `Divider`) via `a2ui_callback` (`after_model_callback`) so replies render as styled cards in both ADK Web and custom frontends.
+### 8. Rich Display Cards & Interactive Link Renderer (A2UI v0.8)
+- Emits structured A2UI v0.8 JSON components (`Card`, `Column`, `Row`, `Text`, `Image`, `Divider`) via `a2ui_callback` (`after_model_callback`) so replies render as styled cards.
+- The custom frontend includes a rich Markdown & URL parser that transforms markdown links and raw URLs inside chat bubbles and A2UI text components into interactive anchors and dedicated PDF badge buttons.
 
 ---
 

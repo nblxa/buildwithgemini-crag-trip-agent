@@ -306,6 +306,42 @@
   .a2img { max-width: 100%; border-radius: 12px; display: block; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-card); }
   .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 1.25rem; line-height: 1; vertical-align: middle; color: var(--accent-emerald); }
 
+  /* Clickable Crag, Accommodation, and PDF Links */
+  a.chat-link {
+    color: var(--accent-emerald-light);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 600;
+    transition: color 0.15s ease;
+    word-break: break-word;
+  }
+  a.chat-link:hover {
+    color: #6ee7b7;
+    text-decoration: underline;
+  }
+  a.pdf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    margin: 0.35rem 0;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.25) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    color: #fca5a5;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  a.pdf-badge:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.4) 100%);
+    border-color: rgba(239, 68, 68, 0.7);
+    color: #fee2e2;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  }
+
   /* Mobile responsiveness */
   @media (max-width: 600px) {
     header { padding: 0.75rem 1rem; }
@@ -347,8 +383,8 @@
     <h2>Where is your next rock climbing adventure?</h2>
     <p>Ask about classic crags, live weather conditions, autobahn vignettes & toll costs, or generate custom topo artwork and full travel itineraries.</p>
     <div class="chips-container">
-      <div class="chip" onclick="quickAsk('Tell me about Falaises de Céüse and classic routes')">
-        <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-emerald)">landscape</span> Céüse Topos
+      <div class="chip" onclick="quickAsk('Tell me about Falaises de Céüse, nearby accommodations, and compile the PDF itinerary brochure')">
+        <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-emerald)">map</span> Céüse Trip & PDF Itinerary
       </div>
       <div class="chip" onclick="quickAsk('Calculate travel logistics from Munich to Zillertal')">
         <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-emerald)">directions_car</span> Munich to Zillertal
@@ -390,6 +426,40 @@ function bubble(who) {
   const b = el("div", "bubble");
   m.appendChild(b); log.appendChild(m); log.scrollTop = log.scrollHeight;
   return b;
+}
+
+// Helper to safely render markdown links [label](url) and bare URLs (https://...) as clickable links
+function renderRichText(container, text) {
+  if (!text) return;
+  // Match [label](url) or bare http(s) URLs
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)|(https?:\/\/[^\s\)]+)/g;
+  let lastIdx = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      container.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
+    }
+    const label = match[1];
+    const url = match[2] || match[3];
+    const displayText = label || url;
+    const a = el("a", "chat-link", displayText);
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+
+    // Style PDF links specially with a download icon badge
+    if (/\.pdf(\?.*)?$/i.test(url) || /itinerary.*\.pdf/i.test(url)) {
+      a.className = "pdf-badge";
+      a.innerHTML = `<span class="material-symbols-outlined" style="font-size: 16px; color: #f87171;">picture_as_pdf</span> ${displayText.replace(/</g, "&lt;")}`;
+    }
+
+    container.appendChild(a);
+    lastIdx = linkRegex.lastIndex;
+  }
+  if (lastIdx < text.length) {
+    container.appendChild(document.createTextNode(text.substring(lastIdx)));
+  }
 }
 
 /* ----------------------------------------------------------------------------
@@ -446,7 +516,7 @@ function buildNode(id, comps, seen) {
       const hint = String(props.usageHint || "body").toLowerCase();
       if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(hint)) t.classList.add("a2-" + hint);
       else if (hint === "caption") t.classList.add("a2-caption");
-      t.textContent = boundStr(props.text);
+      renderRichText(t, boundStr(props.text));
       return t;
     }
     case "Divider":
@@ -495,17 +565,26 @@ function flattenText(messages) {
   return out.join("\n").trim();
 }
 
+
 function renderReply(b, parts) {
   b.textContent = "";   // clear the "…" placeholder
   const texts = parts.filter(p => p && (p.kind === "text" || (!p.kind && p.text))).map(p => p.text || "");
   const a2ui = parts.filter(p => p && p.kind === "a2ui" && p.data).map(p => p.data);
 
   const textStr = texts.join("\n").trim();
-  if (textStr) b.appendChild(el("div", null, textStr));
+  if (textStr) {
+    const d = el("div", null);
+    renderRichText(d, textStr);
+    b.appendChild(d);
+  }
 
   if (a2ui.length) {
     b.classList.add("rich");
-    if (!renderSurface(a2ui, b)) b.appendChild(el("div", null, flattenText(a2ui) || "(no card content)"));
+    if (!renderSurface(a2ui, b)) {
+      const fb = el("div", null);
+      renderRichText(fb, flattenText(a2ui) || "(no card content)");
+      b.appendChild(fb);
+    }
   }
   if (!b.childNodes.length) b.textContent = "(no response)";
   log.scrollTop = log.scrollHeight;

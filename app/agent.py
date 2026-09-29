@@ -138,6 +138,7 @@ def list_crags(discipline: str = "", country: str = "") -> list[dict]:
         results.append({
             "id": data.get("id"),
             "name": data.get("name"),
+            "url": data.get("url", f"https://www.google.com/maps/search/?api=1&query={data.get('name', '')}"),
             "country": data.get("country", ""),
             "location": data.get("location"),
             "disciplines": data.get("disciplines"),
@@ -1484,7 +1485,10 @@ instruction = schema_manager.generate_system_prompt(
         "compile and publish shareable trip itinerary PDFs to Cloud Storage, "
         "generate scenic climbing and crag visual artwork using the image generation tool, "
         "safely execute Python code in your Agent Engine sandbox environment to perform complex math, data analysis, conversions, or packing optimizations, "
-        "remember user vehicle profiles in Firestore, inspect accommodations, and record new crags in the Firestore database using your tools."
+        "remember user vehicle profiles in Firestore, inspect accommodations, and record new crags in the Firestore database using your tools.\n\n"
+        "IMPORTANT LINKING & BROCHURE INSTRUCTIONS:\n"
+        "1. CLICKABLE CRAGS & ACCOMMODATIONS: Always make all crag names and accommodation names clickable using markdown links [Name](url). Use the 'url' provided in the crag or accommodation record, or a Google Maps search link (e.g. [Camping des Guérins](https://www.google.com/maps/search/?api=1&query=Camping+des+Gu%C3%A9rins+Ceuse)).\n"
+        "2. DEFAULT CLICKABLE PDF BROCHURE: Whenever the user asks about crag trips, itineraries, travel planning, or logistics, ALWAYS call `compile_trip_itinerary_asset` to generate the official trip brochure PDF and ALWAYS include the clickable download link directly in your final output (e.g. [Download Trip Itinerary Brochure PDF](https://storage.googleapis.com/...))."
     ),
     workflow_description="Analyze the climber's request and return structured UI when appropriate.",
     ui_description=(
