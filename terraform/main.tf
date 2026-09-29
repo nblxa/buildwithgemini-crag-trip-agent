@@ -32,7 +32,7 @@ locals {
 }
 
 resource "google_project_service" "enabled_apis" {
-  for_each           = toset(locals.services)
+  for_each           = toset(local.services)
   project            = var.project_id
   service            = each.key
   disable_on_destroy = false
@@ -59,18 +59,6 @@ resource "google_storage_bucket" "media_bucket" {
   uniform_bucket_level_access = true
   force_destroy               = false
 
-  website {
-    main_page_suffix = "index.html"
-    not_found_page   = "404.html"
-  }
-
-  cors {
-    origin          = ["*"]
-    method          = ["GET", "HEAD", "OPTIONS"]
-    response_header = ["*"]
-    max_age_seconds = 3600
-  }
-
   depends_on = [google_project_service.enabled_apis["storage.googleapis.com"]]
 }
 
@@ -92,13 +80,13 @@ locals {
 resource "google_project_iam_member" "agent_firestore" {
   project = var.project_id
   role    = "roles/datastore.user"
-  member  = "serviceAccount:${locals.agent_engine_sa}"
+  member  = "serviceAccount:${local.agent_engine_sa}"
 }
 
 resource "google_storage_bucket_iam_member" "agent_storage_admin" {
   bucket = google_storage_bucket.media_bucket.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${locals.agent_engine_sa}"
+  member = "serviceAccount:${local.agent_engine_sa}"
 }
 
 # ------------------------------------------------------------------------------
@@ -123,7 +111,7 @@ resource "google_cloud_run_v2_service" "frontend" {
     service_account = "${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 
     containers {
-      image = "us-east1-docker.pkg.dev/${var.project_id}/cloud-run-source-deploy/cragtrip-frontend:latest"
+      image = "us-east1-docker.pkg.dev/${var.project_id}/cloud-run-source-deploy/cragtrip-frontend@sha256:4e9225dd0915ddca84ae13e7a111846a041cddb4f0374cb3cf4a8953037a21d8"
 
       resources {
         limits = {
@@ -141,6 +129,17 @@ resource "google_cloud_run_v2_service" "frontend" {
         value = var.agent_directory
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      client,
+      client_version,
+      build_config,
+      scaling,
+      template[0].containers[0].resources[0].cpu_idle,
+      template[0].containers[0].resources[0].startup_cpu_boost
+    ]
   }
 
   depends_on = [
